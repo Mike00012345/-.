@@ -1,0 +1,49 @@
+
+import telegram
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from tensorflow.keras.models import load_model
+import numpy as np
+
+# Загрузка обученной модели нейросети
+model = load_model('path_to_model.h5')
+# Загрузка словаря классов
+classes = np.load('path_to_classes.npy')
+
+# Функция для обработки команды /start
+def start(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Привет! Я готов классифицировать изображения. Пришли мне фото и я скажу, что на нем изображено.")
+
+# Функция для обработки сообщений с фото
+def image_handler(update, context):
+    photo_file = context.bot.get_file(update.message.photo[-1].file_id)
+    photo_file.download('image.jpg')
+
+    # Предобработка и классификация изображения
+    image = preprocess_image('image.jpg')
+    prediction = model.predict(image)
+    predicted_class = classes[np.argmax(prediction)]
+
+    context.bot.send_message(chat_id=update.effective_chat.id, text=f"На изображении: {predicted_class}")
+
+def preprocess_image(image_file):
+    # Здесь нужно добавить код для предобработки изображения
+    # Пример: масштабирование, нормализация, изменение размера и т.д.
+    return preprocessed_image
+
+# Токен бота для доступа к Telegram API
+token = 'YOUR_TELEGRAM_TOKEN'
+# Создание экземпляра класса Updater
+updater = Updater(token=token, use_context=True)
+# Получение объекта Dispatcher
+dispatcher = updater.dispatcher
+
+# Добавление обработчиков команд
+start_handler = CommandHandler('start', start)
+dispatcher.add_handler(start_handler)
+
+# Добавление обработчиков сообщений
+image_handler = MessageHandler(Filters.photo, image_handler)
+dispatcher.add_handler(image_handler)
+
+# Запуск бота
+updater.start_polling()
